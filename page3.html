@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="styles.css">
+  <title>Golf Data Visualization</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body class="centered-wrapper">
+  <div class="centered-content" id="chart1"></div>
+
+  <label for="numPlayers">Select Number of Players:</label>
+  <select id="numPlayers" onchange="updateChart()">
+    <option value="50">Top 50</option>
+    <option value="100">Top 100</option>
+    <option value="150">Top 150</option>
+    <option value="250" selected>Top 250</option>
+  </select>
+
+  <script>
+    let playersToShow = 250;
+    let data;
+    let svg;
+    const margin = { top: 30, right: 30, bottom: 70, left: 60 };
+    const width = 800 - margin.left - margin.right;
+    const height = 500 - margin.top - margin.bottom;
+
+    const xScale = d3.scaleLinear()
+      .range([0, width]);
+
+    const yScale = d3.scaleLinear()
+      .range([height, 0]);
+
+  
+    function updateChart() {
+      playersToShow = +document.getElementById("numPlayers").value;
+      createChart();
+    }
+
+    function createChart(){
+      if (!data) return;
+      const topPlayers = data.sort((a, b) => b.Wins - a.Wins).slice(0, playersToShow);
+
+      xScale.domain([d3.min(topPlayers, d => d.Wins), d3.max(topPlayers, d => d.Wins)]);
+
+      yScale.domain([d3.min(topPlayers, d => d['Average Score']), d3.max(topPlayers, d => d['Average Score'])]);
+
+
+      d3.select("#chart1 svg").remove();
+
+      svg = d3.select("#chart1")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+      const points = svg.selectAll(".dot")
+        .data(topPlayers)
+        
+        points.enter()
+        .append("circle")
+        .attr("class", "dot")
+        .attr("cx", d => xScale(d.Wins))
+        .attr("cy", d => yScale(d['Average Score']))
+        .attr("r", 5)
+        .attr("fill", "steelblue")
+        .attr("data-name", d => d['Player Name'])
+        .attr("data-sa", d => d['Average Score'])
+        .attr("data-year", d => d['Year'])
+        .attr("data-dist", d => d['Avg Distance'])
+        .attr("data-putt", d => d['Avgerage Putts'])
+        .attr("data-scrambling", d => d['Average Scrambling'])
+        .attr("data-gir", d => d['gir'])
+        .on("mouseover", showPopup)
+        .on("mouseout", hidePopup);
+
+        points.exit().remove();
+
+      svg.append("g")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(xScale).ticks(d3.max(topPlayers, d => d.Wins)));
+
+      svg.append("g")
+        .call(d3.axisLeft(yScale));
+
+      svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", -10)
+        .attr("text-anchor", "middle")
+        .style("font-size", "16px")
+        .text("Scoring Average vs. Wins for Top 100 Players");
+
+      svg.append("text")
+        .attr("text-anchor", "end")
+        .attr("x", width/2)
+        .attr("y", height + margin.top + 20)
+        .text("Wins");
+
+      svg.append("text")
+        .attr("text-anchor", "end")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -margin.left+20)
+        .attr("x", -margin.top - 100)
+        .text("Scoring Average")
+
+      const popup = d3.select("#chart1")
+        .append("div")
+        .attr("class", "popup")
+        .style("display", "none");
+
+      function showPopup(d) {
+        const names = d3.select(this).attr("data-name");
+        const scoringAvg = d3.select(this).attr("data-sa");
+        const year = d3.select(this).attr("data-year");
+        const distance = d3.select(this).attr("data-dist");
+        const scrambling = d3.select(this).attr("data-scrambling");
+        const gir = d3.select(this).attr("data-gir");
+        const putt = d3.select(this).attr("data-putt");
+
+        popup.style("display", "block");
+        popup.html(
+          `<strong>Player: </strong>${names}<br>` +
+          `<strong>Scoring Average: </strong>${scoringAvg}<br>` +
+          `<strong>Year: </strong>${year}<br>` +
+          `<strong>Avg Distance: </strong>${distance}<br>`+
+          `<strong>GIR: </strong>${gir}<br>`+
+          `<strong>Avg Putts: </strong>${putt}<br>`+
+          `<strong>Avg Scrambling: </strong>${scrambling}<br>`
+        )
+        .style("left",  width*2 + "px")
+        .style("top", height/2 - 18 + "px");
+      }
+
+
+
+      function hidePopup() {
+        popup.style("display", "none");
+      }
+    }
+
+    d3.csv("pgaTourDataCSV.csv").then(function(dataArray) {
+      dataArray.forEach(function(d) {
+        d['Fairway Percentage'] = +d['Fairway Percentage'];
+        d['Wins'] = +d['Wins'];
+        d['Year'] = +d['Year'];
+        d['Avg Distance'] = +d['Avg Distance'];
+        d['gir'] = +d['gir']
+        d['Average Putts'] =+d['Average Putts']
+        d['Average Scrambling'] = +d['Average Scrambling']
+        d['Average Score'] =+d['Average Score']
+      });
+    data = dataArray;
+
+    createChart();
+    });
+  </script>
+  <p> As expected the more wins a player has the lower their scoring average. Hover over the different data points to compare data between different players and number of wins to determine which start matter most.</p>
+  <br>
+  <input type="button" value="Previous Page" onclick="document.location='/page2.html'" />
+</body>
+</html>

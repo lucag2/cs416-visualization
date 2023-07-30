@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="styles.css">
+  <title>Golf Data Visualization</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body class="centered-wrapper">
+  <div class="centered-content" id="chart1"></div>
+
+  <script>
+    d3.csv("pgaTourDataCSV.csv").then(function(data) {
+      // Convert data types if needed (e.g., numerical columns)
+      data.forEach(function(d) {
+        d['SG:APR'] = +d['SG:APR'];
+        d['Wins'] = +d['Wins'];
+      });
+
+      const avgValuesByWins = d3.group(data, d => d.Wins);
+      const averageData = Array.from(avgValuesByWins, ([key, value]) => ({
+        Wins: key,
+        'SG:APR': d3.mean(value, d => d['SG:APR']),
+      }));
+
+      createBarChart(averageData, 'Wins', 'SG:APR', '#chart1', 'Average Strokes Gained: Approach vs. Wins');
+    });
+
+    function createBarChart(data, xColumn, yColumn, chartDiv, chartTitle) {
+      const margin = { top: 30, right: 30, bottom: 70, left: 60 };
+      const width = 600 - margin.left - margin.right;
+      const height = 400 - margin.top - margin.bottom;
+
+      const svg = d3.select(chartDiv)
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      const xScale = d3.scaleBand()
+        .domain(data.map(d => d[xColumn]))
+        .range([0, width])
+        .padding(0.2);
+
+      const yScale = d3.scaleLinear()
+        .domain([0, d3.max(data, d => d[yColumn])])
+        .range([height, 0]);
+
+      svg.selectAll(".bar")
+        .data(data)
+        .enter()
+        .append("rect")
+        .attr("class", "bar")
+        .attr("x", d => xScale(d[xColumn]))
+        .attr("y", d => yScale(d[yColumn]))
+        .attr("width", xScale.bandwidth())
+        .attr("height", d => height - yScale(d[yColumn]))
+        .attr("fill", "steelblue");
+
+      svg.append("g")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(xScale))
+        .selectAll("text")
+        .attr("transform", "rotate(-45)")
+        .style("text-anchor", "end");
+
+      svg.append("g")
+        .call(d3.axisLeft(yScale));
+
+      svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", -10)
+        .attr("text-anchor", "middle")
+        .style("font-size", "16px")
+        .text(chartTitle);
+
+      svg.append("text")
+        .attr("text-anchor", "end")
+        .attr("x", width/2)
+        .attr("y", height + margin.top + 20)
+        .text("Wins");
+
+      svg.append("text")
+        .attr("text-anchor", "end")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -margin.left+20)
+        .attr("x", -margin.top - 100)
+        .text("SG: Approach")
+
+    }
+  </script>
+  <p> The true statistic that set those who win apart from the rest of the field is strokes gained on approach. Good ball striking is essential to win, being more of a differentiator than driving accuracy or putts made.
+  <br>
+  <input type="button" value="Previous Page" onclick="document.location='/index.html'" />
+  <input type="button" value="Next Page" onclick="document.location='/page3.html'" />
+
+
+</body>
+</html>
